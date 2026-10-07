@@ -106,9 +106,57 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    
+    import json
+    from generate import generate
+    
+    count = 1
+    trace.check_iterations(count)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    # 3. Parse query
+    parse_prompt = (
+        f"Extract search parameters from this user query: '{query}'. "
+        f"Return ONLY a JSON object with three keys: 'description' (string, the main search keywords), "
+        f"'size' (string, if mentioned, else null), and 'max_price' (number, if mentioned, else null). "
+        f"Do not include markdown blocks, just the raw JSON."
+    )
+    try:
+        parsed_str = generate(parse_prompt).strip()
+        if parsed_str.startswith("```json"):
+            parsed_str = parsed_str[7:-3].strip()
+        parsed_data = json.loads(parsed_str)
+    except Exception:
+        parsed_data = {"description": query, "size": None, "max_price": None}
+        
+    session["parsed"] = parsed_data
+    
+    # 4. Search
+    session["search_results"] = search_listings(
+        description=session["parsed"].get("description", query),
+        size=session["parsed"].get("size"),
+        max_price=session["parsed"].get("max_price")
+    )
+    
+    # BRANCH RULE
+    if not session["search_results"]:
+        session["error"] = "We couldn't find any items matching your exact search criteria. Try broadening your description, removing the size constraint, or increasing your max price."
+        return session
+        
+    # 5. Choose an item
+    session["selected_item"] = session["search_results"][0]
+    
+    # 6. Suggest outfit
+    session["outfit_suggestion"] = suggest_outfit(
+        new_item=session["selected_item"], 
+        wardrobe=session["wardrobe"]
+    )
+    
+    # 7. Create fit card
+    session["fit_card"] = create_fit_card(
+        outfit=session["outfit_suggestion"], 
+        new_item=session["selected_item"]
+    )
+
     return session
 
 
