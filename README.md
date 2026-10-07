@@ -39,10 +39,7 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
-
-
-
+FitFindr takes a natural language query for a clothing item (e.g., "vintage graphic tee under $30"), searches a thrift store dataset, and selects the best matching piece. If an item is found, the agent considers the user's existing wardrobe to suggest how to style the new item. Finally, it generates an engaging, platform-specific social media caption showcasing the thrifted item and the outfit idea.
 ---
 
 ## Tool Inventory
@@ -113,8 +110,21 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
+=== A query the data can match ===
+  found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+  outfit:   Here are 2 outfit ideas using your new Y2K butterfly baby tee and pieces already in your wardrobe:
 
+### Outfit 1: 2000s Streetwear Contrast
+*Balance the fitted, girly butterfly tee with relaxed denim and chunky footwear for a classic Y2K off-duty look.*
+
+* **Top:** Y2K Butterfly Baby Tee (lst_002)
+* **Bottoms:** Baggy straight-leg jeans, dark wash (w_001)
+* **Outerwear:** Vintage black denim jacket (w_006)
+* **Shoes:** Chunky white sneakers (w_007)
+* **Accessories:** Black crossbody bag (w_010)
+
+  fit card: Channeling major 2000s off-duty model energy with this Y2K butterfly baby tee! 🦋 Pair it with baggy denim and chunky sneakers. Grab this absolute steal for just $18.0 over on my Depop before it's gone! ✨
 ```
 
 **The three tools, tested one at a time**
@@ -153,15 +163,15 @@ Found the holy grail of denim: these perfectly worn-in Vintage Levi's 501s in a 
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked my AI assistant to help me refine my size filtering logic in `search_listings`.
+- *What came back:* It suggested a `substring` check like `size.lower() in item.get('size').lower()`, but simultaneously noted that it would incorrectly match a requested size "S" inside "US 9" or "XS".
+- *What I changed:* I bypassed substring checking entirely and wrote a custom tokenizer using Python's `re.split` to extract distinct alphanumeric size tokens, guaranteeing that sizes are matched precisely as whole words.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I requested help writing a generative JSON parser prompt to extract the `description`, `size`, and `max_price` within the `agent.py` planning loop.
+- *What came back:* The AI wrote a clear generative prompt and a `json.loads` block, but failed to include fallback logic in case the AI generated text surrounding the JSON block or the schema crashed.
+- *What I changed:* I added custom Python code to aggressively strip markdown backticks (` ```json `) from the model's output and included an `except` block to supply a safe default fallback containing the raw search query string if parsing failed.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
