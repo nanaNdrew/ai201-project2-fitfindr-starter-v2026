@@ -121,17 +121,23 @@ $ python app.py ask '...'
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', ...}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', ...}, ...]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
-
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
+Great find! Vintage Levi’s 501s are an absolute staple. Since you already own some great basics and streetwear pieces, here are two ways to style your new medium-wash jeans using items straight from your wardrobe:
+### Outfit 1: The Classic Off-Duty Look (Casual & Streetwear)
+*Lean into the vintage streetwear vibe with crisp white basics and chunky sneakers.*
+* **Top:** White ribbed tank top (`w_003`)
+* **Layer (Optional):** Oversized grey crewneck sweatshirt (`w_004`) worn over the shoulders or thrown on if it gets chilly
+* **Shoes:** Chunky white sneakers (`w_007`)
+...
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
-
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+Found the holy grail of denim: these perfectly worn-in Vintage Levi's 501s in a dream medium wash. Just throw them on with your favorite crisp white sneakers for that effortlessly cool 90s off-duty look. Grab them on my Depop right now for just $38!
 ```
 
 ---
