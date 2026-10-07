@@ -59,24 +59,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Searches the listings data for items matching keywords and optionally a size and max price limit. A size match requires the exact size string to be present as an isolated word (case-insensitive) in the listing's size field, not just as a substring.
+- **Inputs:** `description` (str), `size` (str or None), `max_price` (float or None)
+- **Returns:** A list of listing dicts (each containing id, title, description, category, style_tags, size, condition, price, colors, brand, platform), sorted by best keyword match first.
+- **When it has nothing:** Returns an empty list `[]`.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Suggests one or two outfits combining a new thrifted item with pieces from the user's wardrobe.
+- **Inputs:** `new_item` (dict), `wardrobe` (dict containing an 'items' list)
+- **Returns:** A non-empty string with outfit suggestions formatted by the model.
+- **When it has nothing:** If the wardrobe is empty, it returns general styling advice for the item as a string.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Writes a short, 2-4 sentence caption for a social media post about the new item and outfit.
+- **Inputs:** `outfit` (str), `new_item` (dict)
+- **Returns:** A string containing the social media caption, mentioning the item, price, and platform.
+- **When it has nothing:** If `outfit` is empty or whitespace, it returns a descriptive fallback message string.
 
 ---
 
@@ -93,13 +93,13 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If search_listings returns an empty list, put a message in the session and stop. Otherwise, take the first result and go to suggest_outfit.
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Asking the model to extract the `description`, `size`, and `max_price` using `generate()`.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** `query` -> `parsed` (dict) -> `search_results` (list) -> `selected_item` (dict) -> `outfit_suggestion` (str) -> `fit_card` (str).
 
 ---
 
