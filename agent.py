@@ -15,7 +15,8 @@ Build and test your three tools in `tools.py` first. Then come here.
 
 import config
 import trace
-from tools import search_listings, suggest_outfit, create_fit_card
+from tools import suggest_outfit, create_fit_card
+from mcp_client import call_tool
 from generate import ModelUnavailable
 
 
@@ -130,12 +131,12 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         
     session["parsed"] = parsed_data
     
-    # 4. Search
-    session["search_results"] = search_listings(
-        description=session["parsed"].get("description", query),
-        size=session["parsed"].get("size"),
-        max_price=session["parsed"].get("max_price")
-    )
+    # 4. Search via MCP
+    session["search_results"] = call_tool("search_listings", {
+        "description": session["parsed"].get("description", query),
+        "size": session["parsed"].get("size"),
+        "max_price": session["parsed"].get("max_price"),
+    })
     
     # BRANCH RULE
     if not session["search_results"]:
