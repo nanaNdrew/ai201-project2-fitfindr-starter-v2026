@@ -255,19 +255,59 @@ that produced it:
 **Happy path**
 
 ```
+$ python app.py ask 'vintage graphic tee under $30' --trace
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+      →    matches found
+[2] suggest_outfit
+      in:  dict with keys: new_item, wardrobe
+      out: Here are 2 outfit ideas using your new Y2K butterfly baby tee and pieces already in your wardrobe:  ### Outfit…
+[3] create_fit_card
+      in:  dict with keys: outfit, new_item
+      out: Channeling major 2000s off-duty model energy with this Y2K butterfly baby tee! 🦋 Pair it with baggy denim and …
 
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   Here are 2 outfit ideas using your new Y2K butterfly baby tee and pieces already in your wardrobe:
+
+### Outfit 1: 2000s Streetwear Contrast
+*Balance the fitted, girly butterfly tee with relaxed denim and chunky footwear for a classic Y2K off-duty look.*
+
+* **Top:** Y2K Butterfly Baby Tee (lst_002)
+* **Bottoms:** Baggy straight-leg jeans, dark wash (w_001)
+* **Outerwear:** Vintage black denim jacket (w_006)
+* **Shoes:** Chunky white sneakers (w_007)
+* **Accessories:** Black crossbody bag (w_010)
+
+---
+
+### Outfit 2: Edgy Casual
+*Play up the vintage graphic tee by pairing it with structured dark layers and combat boots for a slightly grungier vibe.*
+
+* **Top:** Y2K Butterfly Baby Tee (lst_002)
+* **Bottoms:** Wide-leg khaki trousers (w_002) *(Optional: add the Brown leather belt, w_009)*
+* **Outerwear:** Black cropped zip hoodie (w_005) or Vintage black denim jacket (w_006)
+* **Shoes:** Black combat boots (w_008)
+* **Accessories:** Black crossbody bag (w_010)
+
+  Fit card: Channeling major 2000s off-duty model energy with this Y2K butterfly baby tee! 🦋 Pair it with baggy denim and chunky sneakers, or throw on some combat boots for a grungier street style. Grab this absolute steal for just $18.0 over on my Depop before it's gone! ✨
 ```
 
 **Empty search**
 
 ```
+$ python app.py ask 'designer ballgown size XXS under $5' --trace
+[1] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+      →    branch: empty search, stopping
 
+  We couldn't find any items matching your exact search criteria. Try broadening your description, removing the size constraint, or increasing your max price.
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
+**On the MCP move:** In `mcp_server.py`, I registered `search_listings` as a FastMCP tool with typed inputs (`description: str`, `size: str | None = None`, `max_price: float | None = None`) matching my Tool Inventory, along with a full docstring detailing parameter units and the empty-case contract (`[]`). In `agent.py`, I replaced the direct function call `search_listings(...)` with `call_tool('search_listings', {...})` imported from `mcp_client`. The protocol call changed the shape over stdio, but returned the exact same structured list of dicts. Downstream tools received the identical data structure and the entire pipeline behaved seamlessly without changes to logic or output.
+
 
 
 

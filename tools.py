@@ -148,7 +148,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    wardrobe_items = wardrobe.get("items", [])
+    wardrobe_items = wardrobe.get("items", []) if isinstance(wardrobe, dict) else []
     
     if not wardrobe_items:
         prompt = (

@@ -107,6 +107,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    trace.start_trace()
     
     import json
     from generate import generate
@@ -114,51 +115,83 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     count = 1
     trace.check_iterations(count)
 
-    # 3. Parse query
-    parse_prompt = (
-        f"Extract search parameters from this user query: '{query}'. "
-        f"Return ONLY a JSON object with three keys: 'description' (string, the main search keywords), "
-        f"'size' (string, if mentioned, else null), and 'max_price' (number, if mentioned, else null). "
-        f"Do not include markdown blocks, just the raw JSON."
-    )
     try:
-        parsed_str = generate(parse_prompt).strip()
-        if parsed_str.startswith("```json"):
-            parsed_str = parsed_str[7:-3].strip()
-        parsed_data = json.loads(parsed_str)
-    except Exception:
-        parsed_data = {"description": query, "size": None, "max_price": None}
+        # 3. Parse query
+        parse_prompt = (
+            f"Extract search parameters from this user query: '{query}'. "
+            f"Return ONLY a JSON object with three keys: 'description' (string, the main search keywords), "
+            f"'size' (string, if mentioned, else null), and 'max_price' (number, if mentioned, else null). "
+            f"Do not include markdown blocks, just the raw JSON."
+        )
+        try:
+            parsed_str = generate(parse_prompt).strip()
+            if parsed_str.startswith("```json"):
+                parsed_str = parsed_str[7:-3].strip()
+            parsed_data = json.loads(parsed_str)
+        except ModelUnavailable:
+            raise
+        except Exception:
+            parsed_data = {"description": query, "size": None, "max_price": None}
+            
+        session["parsed"] = parsed_data
         
-    session["parsed"] = parsed_data
-    
-    # 4. Search via MCP
-    session["search_results"] = call_tool("search_listings", {
-        "description": session["parsed"].get("description", query),
-        "size": session["parsed"].get("size"),
-        "max_price": session["parsed"].get("max_price"),
-    })
-    
-    # BRANCH RULE
-    if not session["search_results"]:
-        session["error"] = "We couldn't find any items matching your exact search criteria. Try broadening your description, removing the size constraint, or increasing your max price."
-        return session
+        # 4. Search via MCP
+        search_inputs = {
+            "description": session["parsed"].get("description", query),
+            "size": session["parsed"].get("size"),
+            "max_price": session["parsed"].get("max_price"),
+        }
+        session["search_results"] = call_tool("search_listings", search_inputs)
+        trace.step(
+            "search_listings (via MCP)",
+            inputs=search_inputs,
+            returned=session["search_results"],
+            note="matches found" if session["search_results"] else "branch: empty search, stopping",
+        )
         
-    # 5. Choose an item
-    session["selected_item"] = session["search_results"][0]
-    
-    # 6. Suggest outfit
-    session["outfit_suggestion"] = suggest_outfit(
-        new_item=session["selected_item"], 
-        wardrobe=session["wardrobe"]
-    )
-    
-    # 7. Create fit card
-    session["fit_card"] = create_fit_card(
-        outfit=session["outfit_suggestion"], 
-        new_item=session["selected_item"]
-    )
+        # BRANCH RULE
+        if not session["search_results"]:
+            session["error"] = "We couldn't find any items matching your exact search criteria. Try broadening your description, removing the size constraint, or increasing your max price."
+            return session
+            
+        # 5. Choose an item
+        session["selected_item"] = session["search_results"][0]
+        
+        # 6. Suggest outfit
+        outfit_inputs = {
+            "new_item": session["selected_item"],
+            "wardrobe": session["wardrobe"],
+        }
+        session["outfit_suggestion"] = suggest_outfit(
+            new_item=session["selected_item"], 
+            wardrobe=session["wardrobe"]
+        )
+        trace.step(
+            "suggest_outfit",
+            inputs=outfit_inputs,
+            returned=session["outfit_suggestion"],
+        )
+        
+        # 7. Create fit card
+        card_inputs = {
+            "outfit": session["outfit_suggestion"],
+            "new_item": session["selected_item"],
+        }
+        session["fit_card"] = create_fit_card(
+            outfit=session["outfit_suggestion"], 
+            new_item=session["selected_item"]
+        )
+        trace.step(
+            "create_fit_card",
+            inputs=card_inputs,
+            returned=session["fit_card"],
+        )
 
-    return session
+        return session
+
+    except ModelUnavailable as exc:
+        session["error"] = f"Model unavailable: {exc}"
+        return session
 
 
 # ── running it directly ───────────────────────────────────────────────────────
