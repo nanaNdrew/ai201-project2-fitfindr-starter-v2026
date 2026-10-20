@@ -291,7 +291,15 @@ Query: 'denim jacket under $50' (Try 1)
 
 **Diagnoses**
 
-All 5 criteria met their targets in the before evaluation (each achieving 5/5 passes). No criteria missed their targets.
+All 5 criteria met their targets in the before evaluation run (each achieving 5/5 passes, exceeding or matching the 4/5 and 5/5 targets). There were zero misses across the 25 total trials.
+
+**Honest Assessment of Targets & Potential Tightening:**
+- **Were the targets too low?** Yes, particularly for Criteria 1 and 4.
+  - In **Criterion 1** ("matching query completes all three tools"), setting the target at 4 of 5 allowed room for query parsing failures, but with clean queries like `"vintage graphic tee under $30"` against our curated thrift dataset, the JSON extraction and keyword search matching succeeded every single time (5/5).
+  - In **Criterion 4** ("fit card includes platform and price"), the target was set to 4 of 5 to account for potential generative drift or instruction non-compliance. However, because the system prompt in `create_fit_card` uses an explicit `MUST mention the item, its price, and the platform`, the model adhered to this requirement in 5 of 5 runs.
+  - **Criteria 2, 3, and 5** (empty search branching, state passing, and max price boundary enforcement) are deterministic Python control flow and filtering operations. Once correctly implemented, their behavior is mathematically predictable, so 5 of 5 was the expected standard.
+- **Which criterion would I tighten?**
+  - I would tighten **Criterion 4**. Simply testing for the presence of two substrings (`platform` and `price`) is a relatively easy bar that any generic template can pass. A much more stringent, meaningful criterion would evaluate **caption diversity and brand handling**: e.g., *"Across 5 consecutive runs on different thrift items, all 5 fit cards share no opening phrase, and items with `brand: None` never produce the literal string 'None' or an awkward sentence fragment."* This would directly test model hallucination and creative output quality rather than basic keyword presence.
 
 
 
