@@ -193,17 +193,72 @@ Found the holy grail of denim: these perfectly worn-in Vintage Levi's 501s in a 
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. The selected item successfully passes to the outfit suggestion tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. The fit card includes all mandatory details | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Price filtering is strictly enforced | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
-```
+```text
+=== Criterion 1: A matching query completes all three tools ===
+File & function: agent.py::run_agent (calling mcp_server.py::search_listings, tools.py::suggest_outfit, tools.py::create_fit_card)
+Query: 'vintage graphic tee under $30' (Try 1)
+- stopped early: no
+- selected_item: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+- search_results: 10
+Outfit:
+  Here are two outfit ideas combining your new Y2K butterfly baby tee with pieces already in your wardrobe:
+  ### Outfit 1: Y2K Streetwear Contrast
+  * **Top:** Y2K Butterfly Baby Tee (`lst_002`)
+  * **Bottoms:** Baggy straight-leg jeans, dark wash (`w_001`)
+  * **Outerwear:** Vintage black denim jacket (`w_006`)
+  * **Shoes:** Chunky white sneakers (`w_007`)
+  * **Accessories:** Black crossbody bag (`w_010`)
+Fit card:
+  🦋 Obsessed with this Y2K butterfly baby tee I just listed on depop for only $18! Style it with baggy denim and chunky sneakers for the ultimate 2000s street vibe, or toughen it up with wide-leg trousers and combat boots. Grab it before it’s gone! ✨
 
+=== Criterion 2: An impossible query stops before the second tool ===
+File & function: agent.py::run_agent
+Query: 'designer ballgown size XXS under $5' (Try 1)
+- stopped early: yes — We couldn't find any items matching your exact search criteria. Try broadening your description, removing the size constraint, or increasing your max price.
+- selected_item: (none)
+- search_results: 0
+Trace:
+  [1] search_listings (via MCP)
+        in:  dict with keys: description, size, max_price
+        out: [] (empty)
+        →    branch: empty search, stopping
+
+=== Criterion 3: The selected item successfully passes to the outfit suggestion tool ===
+File & function: agent.py::run_agent
+Query: '90s track jacket in size M' (Try 1)
+- selected_item: 90s Track Jacket — Navy/White Stripe ($45.0, poshmark) [id: lst_004]
+Trace:
+  [1] search_listings (via MCP)
+        in:  dict with keys: description, size, max_price
+        out: 4 items: 90s Track Jacket — Navy/White Stripe, 90s Leather Bomber — Black, 90s Silk Slip Dress — Floral, Midi Length … +1 more
+        →    matches found
+  [2] suggest_outfit
+        in:  dict with keys: new_item, wardrobe
+        out: Here are 2 outfit ideas using your new Champion 90s track jacket and pieces already in your wardrobe...
+
+=== Criterion 4: The fit card includes all mandatory details ===
+File & function: tools.py::create_fit_card
+Query: 'silk slip dress in midi length under $40' (Try 1)
+Item: 90s Silk Slip Dress — Floral, Midi Length ($30.0, depop)
+Fit card output:
+  Absolute dream find right here ✨ Nothing beats the versatility of a 90s floral silk slip dress—throw it on with an oversized crewneck and combat boots for that effortless grunge-femme vibe, or layer it over baggy jeans. Snagged this beauty on Depop for just $30 and I'm obsessed! 🥀🖤 Link in bio to shop before I change my mind.
+  (Includes platform: 'Depop', Includes price: '$30')
+
+=== Criterion 5: Price filtering is strictly enforced ===
+File & function: mcp_server.py::search_listings / agent.py::run_agent
+Query: 'denim jacket under $50' (Try 1)
+- selected_item: Denim Jacket — Light Wash, Cropped ($42.0, poshmark)
+- price ($42.0) <= max_price ($50.0) -> True
+- search_results count: 7 items (all prices strictly under $50.0 limit)
 ```
 
 ---
@@ -228,13 +283,15 @@ that produced it:
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | A matching query completes all three tools | 4 of 5 | MET (5/5) | In 5 of 5 tries with query 'vintage graphic tee under $30', all 3 tools ran in sequence, generating search results, an outfit suggestion, and a completed fit card. |
+| 2 | An impossible query stops before the second tool | 5 of 5 | MET (5/5) | In 5 of 5 tries with impossible query 'designer ballgown size XXS under $5', the loop branched after search_listings and stopped immediately without calling suggest_outfit. |
+| 3 | The selected item successfully passes to the outfit suggestion tool | 5 of 5 | MET (5/5) | In 5 of 5 tries, the selected_item id ('lst_004') stored in the session was identical to the new_item dictionary passed into suggest_outfit. |
+| 4 | The fit card includes all mandatory details | 4 of 5 | MET (5/5) | In 5 of 5 tries, create_fit_card explicitly included both the platform ('Depop') and the item's price ('$30') in the generated caption. |
+| 5 | Price filtering is strictly enforced | 5 of 5 | MET (5/5) | In 5 of 5 tries with max price $50, the selected item ($42.0) and all returned search results had prices strictly less than or equal to $50.0. |
 
 **Diagnoses**
+
+All 5 criteria met their targets in the before evaluation (each achieving 5/5 passes). No criteria missed their targets.
 
 
 
