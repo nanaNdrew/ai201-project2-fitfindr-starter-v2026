@@ -204,13 +204,17 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     if not outfit or not outfit.strip():
         return f"Just scored this amazing {new_item.get('title')} for ${new_item.get('price')} on {new_item.get('platform')}!"
         
+    brand_str = f"Brand: {new_item['brand']}\n" if new_item.get("brand") else ""
     prompt = (
-        f"Write a short, 2-4 sentence social media caption about a new fashion find. "
-        f"The item is: {new_item.get('title')}. "
-        f"The price is: ${new_item.get('price')}. "
-        f"The platform is: {new_item.get('platform')}. "
-        f"The outfit idea is: {outfit}. "
-        f"You MUST mention the item, its price, and the platform. "
-        f"Make it sound like a real post, specific about the vibe, without sounding like a product description."
+        f"Write a short, 2-4 sentence social media caption about a new fashion find.\n"
+        f"Item: {new_item.get('title')}\n"
+        f"{brand_str}"
+        f"Price: ${new_item.get('price')}\n"
+        f"Platform: {new_item.get('platform')}\n"
+        f"Outfit idea: {outfit}\n\n"
+        f"Requirements:\n"
+        f"1. You MUST explicitly mention the item title, its price (${new_item.get('price')}), and the platform ({new_item.get('platform')}).\n"
+        f"2. Write like an authentic fashion creator. Do NOT use formulaic clichés like 'Just scored' or 'Obsessed with'. Begin with a fresh, creative hook focused on the aesthetic or vibe.\n"
+        f"3. Keep it punchy and between 2 and 4 sentences."
     )
     return generate(prompt)

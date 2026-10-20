@@ -386,25 +386,26 @@ $ python app.py ask 'designer ballgown size XXS under $5' --trace
      `python run_eval.py --label after` -->
 
 **What I changed:**
+I rewrote the generation prompt in `tools.py::create_fit_card`. Specifically, I added dynamic injection of the item's brand (cleanly included when present, and omitted without awkward fragments or 'None' strings when absent). I explicitly prohibited repetitive opening clichés like 'Just scored' and 'Obsessed with', and instructed the model to begin with a fresh, creative hook focused on the aesthetic, mood, or styling contrast, while maintaining strict requirements to include the item title, price, and platform.
 
 **Which failure it was meant to fix:**
+It was meant to address the diagnosis regarding Criterion 4 and caption quality. In the before run, the fit cards repeatedly relied on the exact same formulaic opening phrase ('Just scored...') across over 80% of generations, and ignored brand metadata entirely. The rewrite enforces opening hook diversity and natural brand handling while strictly preserving adherence to the required platform and price details.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. A matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. An impossible query stops before the second tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. The selected item successfully passes to the outfit suggestion tool | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. The fit card includes all mandatory details | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Price filtering is strictly enforced | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
 **Did it help, and how do I know:**
-
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
-
-
+Yes, it helped significantly, and I know this by directly comparing the generated output in `results/run_2026-10-20_1700_after.md` against the before run:
+1. **Elimination of Boilerplate Clichés:** In the before run, over 80% of captions opened with the exact phrase "Just scored...". In the after run, 0 out of 5 tries used "Just scored" or "Obsessed with". Instead, every try opened with a distinct, punchy aesthetic hook (e.g., *"Peak 90s romance meets downtown grit..."*, *"Proportions are everything when building a transitional wardrobe..."*, *"Mastering high-low layering just got easier..."*).
+2. **Brand & Detail Integration:** Brands like "Wrangler" and "Champion" were smoothly integrated into the captions, and items with `brand: None` did not output the string "None" or any fragmented text.
+3. **Preserved Criteria Compliance:** All mandatory constraints (item title, price, and platform) remained 100% compliant across all 5 tries, keeping Criterion 4 at a perfect 5/5 passes.
 
 ---
 
@@ -413,6 +414,11 @@ $ python app.py ask 'designer ballgown size XXS under $5' --trace
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
+
+While all 5 acceptance criteria met their targets (5/5 passes each), the agent still has real architectural and domain limitations:
+1. **Compound Size Delimiters:** In `search_listings`, size filtering matches exact alphanumeric tokens to prevent substring false-positives (like matching 'S' in 'US 9'). However, complex vintage sizing like '32x30' or non-standard thrift measurements ('fits like XS/S') may not match a single-letter query like 'M'. Supporting normalized size mappings or numeric-to-letter ranges would resolve this.
+2. **First-Result Selection Bias:** In `agent.py::run_agent`, the agent selects `search_results[0]` purely based on keyword overlap score. It does not inspect the user's wardrobe beforehand to pick the item that has the highest styling compatibility from the top search candidates. An improved planning loop would consider the top 3 candidates and choose the one with the best wardrobe synergy.
+3. **Deterministic Failure rather than Autonomous Recovery:** When `search_listings` returns an empty list, the agent stops immediately and gives text feedback. A more resilient agentic loop would autonomously relax constraints (such as expanding price by 10% or dropping non-essential keywords) and retry the MCP search once before declaring defeat.
 
 
 
