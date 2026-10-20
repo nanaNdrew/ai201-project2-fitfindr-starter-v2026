@@ -173,6 +173,18 @@ Found the holy grail of denim: these perfectly worn-in Vintage Levi's 501s in a 
 - *What came back:* The AI wrote a clear generative prompt and a `json.loads` block, but failed to include fallback logic in case the AI generated text surrounding the JSON block or the schema crashed.
 - *What I changed:* I added custom Python code to aggressively strip markdown backticks (` ```json `) from the model's output and included an `except` block to supply a safe default fallback containing the raw search query string if parsing failed.
 
+**Moment 3 (Unit 4 — FastMCP Tool Registration)**
+
+- *What I asked for:* I asked how to expose `search_listings` over FastMCP with optional typed parameters (`size: str | None = None`, `max_price: float | None = None`) so that client calls with omitted or None arguments wouldn't fail schema validation.
+- *What came back:* The AI suggested registering the tool without type annotations to allow dynamic Python arguments.
+- *What I changed:* I rejected omitting type hints because FastMCP builds its published JSON Schema directly from type annotations. Instead, I used explicit typing (`str | None = None`) and added clear docstrings with units (e.g., dollars for `max_price`) and the empty-list return contract (`[]`), ensuring foreign MCP callers have a self-documenting contract.
+
+**Moment 4 (Unit 4 — Iterating on Model Boilerplate)**
+
+- *What I asked for:* I asked how to fix the repetitive caption outputs where the model started nearly every fit card with the identical cliché "Just scored...".
+- *What came back:* The AI suggested setting temperature to 0.0 or writing a static string template with f-strings.
+- *What I changed:* I rejected setting temperature to 0.0 because the rubric explicitly requires diverse, creative variations between runs rather than robotic templates. Instead, I rewrote the prompt in `tools.py::create_fit_card` to negative-prompt formulaic openers ("Just scored", "Obsessed with"), guide the model toward varied aesthetic hooks, and dynamically inject brand metadata only when present.
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -415,10 +427,22 @@ Yes, it helped significantly, and I know this by directly comparing the generate
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
 
-While all 5 acceptance criteria met their targets (5/5 passes each), the agent still has real architectural and domain limitations:
-1. **Compound Size Delimiters:** In `search_listings`, size filtering matches exact alphanumeric tokens to prevent substring false-positives (like matching 'S' in 'US 9'). However, complex vintage sizing like '32x30' or non-standard thrift measurements ('fits like XS/S') may not match a single-letter query like 'M'. Supporting normalized size mappings or numeric-to-letter ranges would resolve this.
-2. **First-Result Selection Bias:** In `agent.py::run_agent`, the agent selects `search_results[0]` purely based on keyword overlap score. It does not inspect the user's wardrobe beforehand to pick the item that has the highest styling compatibility from the top search candidates. An improved planning loop would consider the top 3 candidates and choose the one with the best wardrobe synergy.
-3. **Deterministic Failure rather than Autonomous Recovery:** When `search_listings` returns an empty list, the agent stops immediately and gives text feedback. A more resilient agentic loop would autonomously relax constraints (such as expanding price by 10% or dropping non-essential keywords) and retry the MCP search once before declaring defeat.
+While all 5 acceptance criteria technically met their target thresholds (5/5 passes each), our evaluation and diagnoses revealed real architectural limitations and edge cases that remain:
+
+1. **Compound Size Delimiters:**
+   - *What's broken:* In `search_listings`, size filtering relies on exact alphanumeric token matching to prevent substring false-positives (like matching 'S' in 'US 9'). However, complex vintage sizing like '32x30', footwear sizes ('US 9.5'), or compound thrift labels ('fits like XS/S') will fail a query for 'M' or 'small'.
+   - *What I'd do:* Implement a normalized size taxonomy mapping table that understands equivalent waist measurements, shoe sizes, and alpha-numeric conversions.
+
+2. **First-Result Selection Bias:**
+   - *What's broken:* In `agent.py::run_agent`, the agent deterministically picks `search_results[0]` based solely on keyword overlap. It does not inspect the user's wardrobe beforehand to pick which of the top candidate items actually coordinates best with their existing clothes.
+   - *What I'd do:* Have the planning loop pass the top 3 search candidates to an evaluation step that ranks them by wardrobe synergy before committing to `selected_item`.
+
+3. **Deterministic Stoppage vs. Autonomous Recovery:**
+   - *What's broken:* When `search_listings` returns an empty list, the agent terminates immediately. While this fulfills the branch rule criterion, a truly agentic assistant should attempt recovery.
+   - *What I'd do:* Add an autonomous retry loop that slightly widens the price ceiling (+10%) or drops secondary adjectives from the description, retrying the MCP search once before stopping.
+
+**Why I stopped here:**
+I stopped here because Unit 4 emphasizes making **one single change, measured properly**, rather than introducing multiple confounding variables. Once my diagnosis identified the severe boilerplate phrasing in `create_fit_card`, I focused solely on that prompt rewrite, tested it with `run_eval.py --label after`, and verified that it eliminated the repetition while preserving full criteria compliance. Rebuilding the search engine or adding complex multi-turn retry loops would have obscured the measurement.
 
 
 
